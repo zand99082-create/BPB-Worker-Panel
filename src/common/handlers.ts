@@ -68,11 +68,13 @@ export async function handlePanel(request: Request, env: Env): Promise<Response>
         case '/panel/get-warp-configs':
             return await getWarpConfigs(request, env);
 
+        case '/panel/usage':
+            return await getUsage(request, env);
+
         default:
             return await fallback(request);
     }
 }
-
 export async function handleProxyIPs(request: Request, env: Env): Promise<Response> {
     const auth = await Authenticate(request, env);
 
@@ -276,6 +278,27 @@ async function getSettings(request: Request, env: Env): Promise<Response> {
     } catch (error) {
         console.log(error);
         return respond(false, HttpStatus.INTERNAL_SERVER_ERROR, `Error occurred while fetching settings: ${safeErrorMessage(error)}`);
+    }
+}
+async function getUsage(request: Request, env: Env): Promise<Response> {
+    const auth = await Authenticate(request, env);
+    if (!auth) {
+        return respond(false, HttpStatus.UNAUTHORIZED, 'Unauthorized.');
+    }
+
+    try {
+        const list = await env.kv.list({ prefix: 'usage_' });
+        const usage: Record<string, number> = {};
+        
+        for (const key of list.keys) {
+            const value = await env.kv.get(key.name);
+            const userId = key.name.replace('usage_', '');
+            usage[userId] = parseInt(value || '0', 10);
+        }
+
+        return respond(true, HttpStatus.OK, '', usage);
+    } catch (error) {
+        return respond(false, HttpStatus.INTERNAL_SERVER_ERROR, safeErrorMessage(error));
     }
 }
 
