@@ -567,7 +567,8 @@ export async function getURLConfigs() {
             remoteDNS,
             customConfigs,
             customSubs,
-            upstreamParams: { upstreamServer, upstreamPort }
+            upstreamParams: { upstreamServer, upstreamPort },
+            dataLimit  // ✅ اضافه شد
         }
     } = globalThis;
 
@@ -664,11 +665,11 @@ export async function getURLConfigs() {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'CDN-Cache-Control': 'no-store',
             'Profile-Title': `base64:${base64EncodeUtf8(`💦 ${_project_} Raw`)}`,
-            'DNS': remoteDNS
+            'DNS': remoteDNS,
+            'Data-Limit': (dataLimit || 0).toString()  // ✅ اضافه شد
         }
     });
 }
-
 async function fetchCustomSubs(subs: string[]): Promise<string> {
     const results = await Promise.all(
         subs.map(async (url) => {
