@@ -43,6 +43,7 @@ globalThis.settings = {
     customCdnHost: "",
     customCdnSni: "",
     bestVLTRInterval: 30,
+    dataLimit: 0,  // ✅ اضافه شد: محدودیت حجم بر حسب مگابایت (0 = نامحدود)
     VLConfigs: true,
     TRConfigs: true,
     ports: [443],
@@ -106,7 +107,8 @@ globalThis.settings = {
     amneziaNoiseSizeMax: 100,
     customSubs: [],
     customConfigs: [],
-    panelVersion: __VERSION__
+    panelVersion: __VERSION__,
+    userUsage: {}  // ✅ اضافه شد: برای ذخیره مصرف هر کاربر
 };
 
 export async function setSettings(request: Request, env: Env) {
