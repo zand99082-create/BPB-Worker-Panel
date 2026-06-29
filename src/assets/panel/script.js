@@ -69,6 +69,7 @@ function initiatePanel(proxySettings) {
         activeProtocols: VLConfigs + TRConfigs,
         activeTlsPorts: ports.filter(port => defaultHttpsPorts.includes(port)),
         xrayNoiseCount: xrayUdpNoises.length,
+        dataLimit: proxySettings.dataLimit || 0  // ✅ اضافه شد
     });
 
     populatePanel(proxySettings);
@@ -87,11 +88,32 @@ function populatePanel(proxySettings) {
         const key = elm.id;
         const element = document.getElementById(key);
         const value = proxySettings[key]?.join('\r\n');
-        const rowsCount = proxySettings[key].length;
+        const rowsCount = proxySettings[key]?.length || 0;
         element.style.height = 'auto';
         if (rowsCount) element.rows = rowsCount;
         element.value = value;
     });
+
+    // ✅ اضافه کردن Data Limit به فرم
+    let dataLimitField = document.getElementById('dataLimit');
+    if (!dataLimitField) {
+        // اگه فیلد وجود نداشت، بسازش
+        const form = document.getElementById('configForm');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-control';
+        wrapper.innerHTML = `
+            <label>📊 Data Limit (MB)</label>
+            <div>
+                <input type="number" id="dataLimit" name="dataLimit" 
+                       value="${proxySettings.dataLimit || 0}" min="0" step="1">
+                <small style="display:block;color:#666;margin-top:4px;">0 = Unlimited</small>
+            </div>
+        `;
+        form.appendChild(wrapper);
+    } else {
+        // اگه وجود داشت، مقدارش رو به‌روز کن
+        dataLimitField.value = proxySettings.dataLimit || 0;
+    }
 }
 
 function initiateForm() {
@@ -1029,6 +1051,9 @@ function validateSettings() {
         ...defaultHttpsPorts
     ].filter(port => formData.has(port.toString()));
 
+    // ✅ اضافه کردن Data Limit به خروجی
+    form.dataLimit = Number(formData.get('dataLimit')) || 0;
+
     checkboxElements.forEach(elm => {
         form[elm.id] = formData.has(elm.id);
     });
@@ -1058,7 +1083,6 @@ function validateSettings() {
 
     return form;
 }
-
 function logout(event) {
     event.preventDefault();
     fetch('/logout', { method: 'GET', credentials: 'same-origin' })
