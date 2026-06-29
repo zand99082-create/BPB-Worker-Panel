@@ -4,7 +4,29 @@ import {
     safeCloseTcpSocket
 } from './common';
 
-export async function TrOverWSHandler(request: Request): Promise<Response> {
+// ✅ تابع چک و به‌روزرسانی مصرف کاربر
+async function checkAndUpdateUsage(userId: string, bytes: number, env: Env): Promise<boolean> {
+    const dataLimit = globalThis.settings.dataLimit || 0;
+    if (dataLimit === 0) return true; // نامحدود
+
+    const limitBytes = dataLimit * 1024 * 1024; // تبدیل مگابایت به بایت
+    const usageKey = `usage_${userId}`;
+    
+    const currentUsage = parseInt(await env.kv.get(usageKey) || '0', 10);
+    const newUsage = currentUsage + bytes;
+    
+    // ذخیره مصرف جدید
+    await env.kv.put(usageKey, newUsage.toString());
+    
+    // بررسی کن که از حد مجاز نگذشته
+    if (newUsage > limitBytes) {
+        return false; // محدودیت رد شده
+    }
+    
+    return true; // هنوز مجازه
+}
+
+export async function TrOverWSHandler(request: Request, env: Env): Promise<Response> {
     const webSocketPair = new WebSocketPair();
     const [client, webSocket] = Object.values(webSocketPair);
     webSocket.accept();
@@ -25,6 +47,18 @@ export async function TrOverWSHandler(request: Request): Promise<Response> {
 
     const writableStream = new WritableStream({
         async write(chunk, _controller) {
+            // ✅ چک محدودیت حجم
+            const userId = globalThis.globalConfig.userID;
+            const bytes = chunk.byteLength || chunk.length || 0;
+            
+            if (bytes > 0) {
+                const allowed = await checkAndUpdateUsage(userId, bytes, env);
+                if (!allowed) {
+                    webSocket.close(1008, 'Data limit exceeded');
+                    throw new Error('Data limit exceeded');
+                }
+            }
+
             if (udpStreamWrite) {
                 return udpStreamWrite(chunk);
             }
