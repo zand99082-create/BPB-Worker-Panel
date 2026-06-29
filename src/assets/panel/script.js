@@ -77,6 +77,7 @@ function initiatePanel(proxySettings) {
     renderUdpNoiseBlock(xrayUdpNoises);
     initiateForm();
     fetchIPInfo();
+    fetchUsage(); // ✅ اضافه شد
 }
 
 function populatePanel(proxySettings) {
@@ -234,6 +235,41 @@ async function fetchIPInfo() {
         refreshIcon.classList.remove('fa-spin');
     } catch (error) {
         console.error("Fetching IP error:", error.message || error)
+    }
+}
+async function fetchUsage() {
+    try {
+        const response = await fetch('/panel/usage');
+        const { success, body } = await response.json();
+        if (!success) return;
+
+        let container = document.getElementById('usage-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'usage-container';
+            container.style.marginTop = '20px';
+            container.style.padding = '15px';
+            container.style.border = '1px solid #444';
+            container.style.borderRadius = '8px';
+            document.getElementById('configForm').appendChild(container);
+        }
+
+        let html = '<h3>📊 User Usage</h3>';
+        if (Object.keys(body).length === 0) {
+            html += '<p>No usage data yet.</p>';
+        } else {
+            html += '<ul style="list-style:none;padding:0;">';
+            for (const [userId, usage] of Object.entries(body)) {
+                const mb = (usage / 1024 / 1024).toFixed(2);
+                const gb = (usage / 1024 / 1024 / 1024).toFixed(2);
+                html += `<li style="padding:5px 0;border-bottom:1px solid #333;">🔑 ${userId.substring(0, 8)}... : ${mb} MB (${gb} GB)</li>`;
+            }
+            html += '</ul>';
+        }
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error fetching usage:', error);
     }
 }
 
